@@ -6,10 +6,11 @@
 //  Copyright © 2015 Oron Ben Zvi. All rights reserved.
 //
 
+#import <MapKit/MapKit.h>
 #import <UIKit/UIKit.h>
+#import "ListViewController.h"
 
-@interface ViewController : UIViewController
-
+@interface ViewController
+    : UIViewController <CLLocationManagerDelegate, MKMapViewDelegate, ListViewDelegate>
 
 @end
-

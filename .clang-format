@@ -1,0 +1,11 @@
+# http://clang.llvm.org/docs/ClangFormatStyleOptions.html
+BasedOnStyle: Google
+ColumnLimit: 100
+IndentWidth: 4
+ObjCBlockIndentWidth: 4
+AllowShortIfStatementsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+ObjCSpaceAfterProperty: true
+ObjCSpaceBeforeProtocolList: true
+AllowShortBlocksOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
