@@ -7,6 +7,8 @@
 //
 
 #import "Breadcrumb.h"
+#import "BreadcrumbAnnotation.h"
+#import "DetailViewController.h"
 #import "ListViewController.h"
 #import "Model.h"
 #import "UIView+Shadow.h"
@@ -27,6 +29,7 @@
 @property (assign, nonatomic) BOOL shouldUpdateLocation;
 @property (strong, nonatomic) NSMutableArray *annotations;
 @property (strong, nonatomic) ListViewController *listViewController;
+@property (strong, nonatomic) Breadcrumb *selectedBreadcrumb;
 
 @end
 
@@ -121,10 +124,12 @@
     for (Breadcrumb *breadcrumb in breadcrumbs) {
         CLLocationCoordinate2D breadcrumbCoordinate =
             CLLocationCoordinate2DMake(breadcrumb.latitude, breadcrumb.longitude);
-        MKPointAnnotation *annotation = [[MKPointAnnotation alloc] init];
-        annotation.coordinate = breadcrumbCoordinate;
+        BreadcrumbAnnotation *annotation =
+            [[BreadcrumbAnnotation alloc] initWithCoordinate:breadcrumbCoordinate
+                                               andBreadcrumb:breadcrumb];
         annotation.title = breadcrumb.title;
         annotation.subtitle = @"Oron Ben Zvi";
+
         [self.annotations addObject:annotation];
         [self.mapView addAnnotation:annotation];
     }
@@ -141,13 +146,6 @@
     // Dispose of any resources that can be recreated.
 }
 
-#pragma mark - ListViewDelegate
-
-- (void)didSelectBreadcrumb:(Breadcrumb *)breadcrumb {
-    [self performSegueWithIdentifier:@"detail" sender:nil];
-    [self closeListView];
-}
-
 #pragma mark - Navigation
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender {
@@ -155,6 +153,18 @@
         self.listViewController = segue.destinationViewController;
         self.listViewController.delegate = self;
     }
+    if ([segue.identifier isEqualToString:@"detail"]) {
+        DetailViewController *dvc = segue.destinationViewController;
+        dvc.breadcrumb = self.selectedBreadcrumb;
+    }
+}
+
+#pragma mark - ListViewDelegate
+
+- (void)didSelectBreadcrumb:(Breadcrumb *)breadcrumb {
+    self.selectedBreadcrumb = breadcrumb;
+    [self closeListView];
+    [self performSegueWithIdentifier:@"detail" sender:nil];
 }
 
 #pragma mark - CLLocationManagerDelegate
@@ -192,6 +202,8 @@
 - (void)mapView:(MKMapView *)mapView
                    annotationView:(MKAnnotationView *)view
     calloutAccessoryControlTapped:(UIControl *)control {
+    BreadcrumbAnnotation *annotation = view.annotation;
+    self.selectedBreadcrumb = annotation.breadcrumb;
     [self performSegueWithIdentifier:@"detail" sender:nil];
 }
 

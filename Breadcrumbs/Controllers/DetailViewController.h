@@ -6,8 +6,11 @@
 //  Copyright © 2015 Oron Ben Zvi. All rights reserved.
 //
 
+#import "Breadcrumb.h"
 #import "ViewController.h"
 
 @interface DetailViewController : ViewController
+
+@property (strong, nonatomic) Breadcrumb *breadcrumb;
 
 @end

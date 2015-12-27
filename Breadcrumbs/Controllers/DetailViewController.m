@@ -25,6 +25,24 @@
     // Do any additional setup after loading the view.
     [self addGradientToView:self.imageView];
     [self.closeButton addShadow];
+    [self loadImage];
+
+    self.titleLabel.text = self.breadcrumb.title;
+    self.contentsLabel.text = self.breadcrumb.contents;
+    self.authorLabel.text = self.breadcrumb.author;
+}
+
+- (void)loadImage {
+    [[[NSURLSession sharedSession]
+          dataTaskWithURL:self.breadcrumb.imageUrl
+        completionHandler:^(NSData *_Nullable data, NSURLResponse *_Nullable response,
+                            NSError *_Nullable error) {
+            if (data != nil) {
+                dispatch_async(dispatch_get_main_queue(), ^{
+                    self.imageView.image = [UIImage imageWithData:data];
+                });
+            }
+        }] resume];
 }
 
 - (void)addGradientToView:(UIView *)view {
