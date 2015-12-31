@@ -7,6 +7,10 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		9236CC091C33170C0098D656 /* MKMapView+Focus.m in Sources */ = {isa = PBXBuildFile; fileRef = 9236CC081C33170C0098D656 /* MKMapView+Focus.m */; };
+		9236CC0C1C3323D40098D656 /* BreadcrumbAnnotationView.m in Sources */ = {isa = PBXBuildFile; fileRef = 9236CC0B1C3323D40098D656 /* BreadcrumbAnnotationView.m */; };
+		9236CC0E1C3411440098D656 /* placeholder-640x480.png in Resources */ = {isa = PBXBuildFile; fileRef = 9236CC0D1C3411440098D656 /* placeholder-640x480.png */; };
+		929CE53C1C31A2B40022946A /* CreateViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 929CE53B1C31A2B40022946A /* CreateViewController.m */; };
 		92B6685A1C2D8F750014198E /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 92B668591C2D8F750014198E /* main.m */; };
 		92B6685D1C2D8F750014198E /* AppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 92B6685C1C2D8F750014198E /* AppDelegate.m */; };
 		92B668601C2D8F750014198E /* ViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 92B6685F1C2D8F750014198E /* ViewController.m */; };
@@ -25,6 +29,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		9236CC071C33170C0098D656 /* MKMapView+Focus.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "MKMapView+Focus.h"; sourceTree = "<group>"; };
+		9236CC081C33170C0098D656 /* MKMapView+Focus.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "MKMapView+Focus.m"; sourceTree = "<group>"; };
+		9236CC0A1C3323D40098D656 /* BreadcrumbAnnotationView.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BreadcrumbAnnotationView.h; sourceTree = "<group>"; };
+		9236CC0B1C3323D40098D656 /* BreadcrumbAnnotationView.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BreadcrumbAnnotationView.m; sourceTree = "<group>"; };
+		9236CC0D1C3411440098D656 /* placeholder-640x480.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "placeholder-640x480.png"; sourceTree = "<group>"; };
+		929CE53A1C31A2B40022946A /* CreateViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CreateViewController.h; sourceTree = "<group>"; };
+		929CE53B1C31A2B40022946A /* CreateViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CreateViewController.m; sourceTree = "<group>"; };
 		92B668551C2D8F750014198E /* Breadcrumbs.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Breadcrumbs.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B668591C2D8F750014198E /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		92B6685B1C2D8F750014198E /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
@@ -110,6 +121,7 @@
 			isa = PBXGroup;
 			children = (
 				92B668641C2D8F750014198E /* Assets.xcassets */,
+				9236CC0D1C3411440098D656 /* placeholder-640x480.png */,
 				92B6686F1C2D9BA00014198E /* Launch Screen@3x.png */,
 				92B668861C2F00B10014198E /* seo6.jpg */,
 			);
@@ -125,6 +137,8 @@
 				92B668841C2EF89D0014198E /* ListViewController.m */,
 				92B6685E1C2D8F750014198E /* ViewController.h */,
 				92B6685F1C2D8F750014198E /* ViewController.m */,
+				929CE53A1C31A2B40022946A /* CreateViewController.h */,
+				929CE53B1C31A2B40022946A /* CreateViewController.m */,
 			);
 			path = Controllers;
 			sourceTree = "<group>";
@@ -154,6 +168,8 @@
 			children = (
 				92B6688B1C2F130B0014198E /* UIVIew+Shadow.h */,
 				92B6688C1C2F130B0014198E /* UIVIew+Shadow.m */,
+				9236CC071C33170C0098D656 /* MKMapView+Focus.h */,
+				9236CC081C33170C0098D656 /* MKMapView+Focus.m */,
 			);
 			path = Categories;
 			sourceTree = "<group>";
@@ -163,6 +179,8 @@
 			children = (
 				92B668901C2F2CF30014198E /* BreadcrumbAnnotation.h */,
 				92B668911C2F2CF30014198E /* BreadcrumbAnnotation.m */,
+				9236CC0A1C3323D40098D656 /* BreadcrumbAnnotationView.h */,
+				9236CC0B1C3323D40098D656 /* BreadcrumbAnnotationView.m */,
 			);
 			name = Annotations;
 			sourceTree = "<group>";
@@ -224,6 +242,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9236CC0E1C3411440098D656 /* placeholder-640x480.png in Resources */,
 				92B668681C2D8F750014198E /* LaunchScreen.storyboard in Resources */,
 				92B668871C2F00B10014198E /* seo6.jpg in Resources */,
 				92B668701C2D9BA00014198E /* Launch Screen@3x.png in Resources */,
@@ -241,12 +260,15 @@
 			files = (
 				92B668601C2D8F750014198E /* ViewController.m in Sources */,
 				92B668851C2EF89D0014198E /* ListViewController.m in Sources */,
+				929CE53C1C31A2B40022946A /* CreateViewController.m in Sources */,
 				92B668921C2F2CF30014198E /* BreadcrumbAnnotation.m in Sources */,
 				92B6685D1C2D8F750014198E /* AppDelegate.m in Sources */,
 				92B668811C2EED140014198E /* Breadcrumb.m in Sources */,
+				9236CC091C33170C0098D656 /* MKMapView+Focus.m in Sources */,
 				92B6688D1C2F130B0014198E /* UIVIew+Shadow.m in Sources */,
 				92B6685A1C2D8F750014198E /* main.m in Sources */,
 				92B668821C2EED140014198E /* Model.m in Sources */,
+				9236CC0C1C3323D40098D656 /* BreadcrumbAnnotationView.m in Sources */,
 				92B6688A1C2F015A0014198E /* DetailViewController.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -363,6 +385,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = bz.oron.Breadcrumbs;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -374,6 +397,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = bz.oron.Breadcrumbs;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

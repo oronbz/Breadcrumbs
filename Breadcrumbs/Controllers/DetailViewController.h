@@ -7,10 +7,17 @@
 //
 
 #import "Breadcrumb.h"
-#import "ViewController.h"
 
-@interface DetailViewController : ViewController
+@protocol DetailViewDelegate <NSObject>
+
+- (void)onDeleteBreadcrumb:(Breadcrumb *)breadcrumb;
+
+@end
+
+@interface DetailViewController : UIViewController
 
 @property (strong, nonatomic) Breadcrumb *breadcrumb;
+@property (weak, nonatomic) id<DetailViewDelegate> delegate;
+@property (weak, nonatomic) id<MKMapViewDelegate> mapViewDelegate;
 
 @end

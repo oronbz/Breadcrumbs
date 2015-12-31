@@ -11,6 +11,7 @@
 #import "ListViewController.h"
 
 @interface ViewController
-    : UIViewController <CLLocationManagerDelegate, MKMapViewDelegate, ListViewDelegate>
+    : UIViewController <CLLocationManagerDelegate, MKMapViewDelegate, ListViewDelegate,
+                        CreateViewDelegate, DetailViewDelegate>
 
 @end

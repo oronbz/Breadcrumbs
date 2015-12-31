@@ -20,4 +20,6 @@
 @property (weak, nonatomic) id<ListViewDelegate> delegate;
 @property (strong, nonatomic) NSArray *breadcrumbs;
 
+- (void)reloadData;
+
 @end

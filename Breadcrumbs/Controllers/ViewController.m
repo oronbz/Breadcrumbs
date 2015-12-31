@@ -8,8 +8,11 @@
 
 #import "Breadcrumb.h"
 #import "BreadcrumbAnnotation.h"
+#import "BreadcrumbAnnotationView.h"
+#import "CreateViewController.h"
 #import "DetailViewController.h"
 #import "ListViewController.h"
+#import "MKMapView+Focus.h"
 #import "Model.h"
 #import "UIView+Shadow.h"
 #import "ViewController.h"
@@ -19,17 +22,19 @@
 @property (weak, nonatomic) IBOutlet UIView *listViewContainer;
 @property (weak, nonatomic) IBOutlet MKMapView *mapView;
 @property (weak, nonatomic) IBOutlet UIView *overlay;
-@property (weak, nonatomic) IBOutlet UIButton *addButton;
 @property (weak, nonatomic) IBOutlet UIButton *curLocationButton;
 @property (weak, nonatomic) IBOutlet UIButton *listButton;
 
 @property (strong, nonatomic) Model *model;
+@property (strong, nonatomic) NSArray *breadcrumbs;
 @property (strong, nonatomic) CLLocationManager *locationManager;
 
 @property (assign, nonatomic) BOOL shouldUpdateLocation;
 @property (strong, nonatomic) NSMutableArray *annotations;
 @property (strong, nonatomic) ListViewController *listViewController;
 @property (strong, nonatomic) Breadcrumb *selectedBreadcrumb;
+@property (assign, nonatomic) CLLocationCoordinate2D currentLocation;
+@property (assign, nonatomic) CLLocationCoordinate2D newBreadcrumbCoordinate;
 
 @end
 
@@ -38,6 +43,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     [self setup];
+    [self goToCurrentLocation];
 }
 
 - (void)setup {
@@ -49,14 +55,49 @@
 
     self.annotations = [[NSMutableArray alloc] init];
 
-    // add gesture recognizer to close the listView
+    // add tap recognizer to close the listView
     UITapGestureRecognizer *tapRecognizer =
         [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(overlayTap:)];
     [self.overlay addGestureRecognizer:tapRecognizer];
 
-    [self.addButton addShadow];
+    // add long press recognizer to add a breadcrumb on map
+    UILongPressGestureRecognizer *lpgr =
+        [[UILongPressGestureRecognizer alloc] initWithTarget:self
+                                                      action:@selector(handleLongPress:)];
+    lpgr.minimumPressDuration = 1.0;  // user needs to press for 2 seconds
+    [self.mapView addGestureRecognizer:lpgr];
+
     [self.listButton addShadow];
     [self.curLocationButton addShadow];
+}
+
+- (void)handleLongPress:(UIGestureRecognizer *)gestureRecognizer {
+    if (gestureRecognizer.state != UIGestureRecognizerStateBegan)
+        return;
+
+    CGPoint touchPoint = [gestureRecognizer locationInView:self.mapView];
+    CLLocationCoordinate2D coordinate =
+        [self.mapView convertPoint:touchPoint toCoordinateFromView:self.mapView];
+
+    BreadcrumbAnnotation *annotation = [[BreadcrumbAnnotation alloc] init];
+    annotation.coordinate = coordinate;
+    [self.mapView addAnnotation:annotation];
+
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
+                   dispatch_get_main_queue(), ^{
+                       self.newBreadcrumbCoordinate = coordinate;
+                       [self performSegueWithIdentifier:@"create" sender:nil];
+                       dispatch_after(
+                           dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
+                           dispatch_get_main_queue(), ^{
+                               [self.mapView removeAnnotation:annotation];
+                           });
+                   });
+}
+
+- (IBAction)createButtonClicked:(id)sender {
+    self.newBreadcrumbCoordinate = self.currentLocation;
+    [self performSegueWithIdentifier:@"create" sender:nil];
 }
 
 - (IBAction)listButtonClicked:(id)sender {
@@ -104,46 +145,40 @@
 }
 
 - (void)goToCoordinate:(CLLocationCoordinate2D)coordinate {
-    CLLocationDegrees latDelta = 0.01;
-    CLLocationDegrees lonDelta = 0.01;
-
-    MKCoordinateSpan span = MKCoordinateSpanMake(latDelta, lonDelta);
-    MKCoordinateRegion region = MKCoordinateRegionMake(coordinate, span);
-
-    [self updateNearbyBreadcrumbs:coordinate];
-
-    [self.mapView setRegion:region animated:YES];
+    [self.mapView focusOnCoordinate:coordinate animated:NO];
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self getNearbyBreadcrumbs:coordinate];
+    });
 }
 
-- (void)updateNearbyBreadcrumbs:(CLLocationCoordinate2D)coordinate {
+- (void)getNearbyBreadcrumbs:(CLLocationCoordinate2D)coordinate {
     [self.mapView removeAnnotations:self.annotations];
     [self.annotations removeAllObjects];
 
-    NSArray *breadcrumbs = [self.model getBreadcrumbsNearCoordinate:coordinate];
+    self.breadcrumbs = [self.model getBreadcrumbsNearCoordinate:coordinate];
 
-    for (Breadcrumb *breadcrumb in breadcrumbs) {
+    for (Breadcrumb *breadcrumb in self.breadcrumbs) {
         CLLocationCoordinate2D breadcrumbCoordinate =
             CLLocationCoordinate2DMake(breadcrumb.latitude, breadcrumb.longitude);
-        BreadcrumbAnnotation *annotation =
-            [[BreadcrumbAnnotation alloc] initWithCoordinate:breadcrumbCoordinate
-                                               andBreadcrumb:breadcrumb];
-        annotation.title = breadcrumb.title;
-        annotation.subtitle = @"Oron Ben Zvi";
-
-        [self.annotations addObject:annotation];
-        [self.mapView addAnnotation:annotation];
+        [self addAnnotationwithCoordinate:breadcrumbCoordinate andBreadcrumb:breadcrumb];
     }
 
-    [self updateListViewWithBreadcrumbs:breadcrumbs];
+    [self updateListViewWithBreadcrumbs:self.breadcrumbs];
+}
+
+- (void)addAnnotationwithCoordinate:(CLLocationCoordinate2D)coordinate
+                      andBreadcrumb:(Breadcrumb *)breadcrumb {
+    BreadcrumbAnnotation *annotation =
+        [[BreadcrumbAnnotation alloc] initWithCoordinate:coordinate andBreadcrumb:breadcrumb];
+    annotation.title = breadcrumb.locationName;
+    annotation.subtitle = breadcrumb.author;
+
+    [self.annotations addObject:annotation];
+    [self.mapView addAnnotation:annotation];
 }
 
 - (void)updateListViewWithBreadcrumbs:(NSArray *)breadcrumbs {
-    [self.listViewController setBreadcrumbs:breadcrumbs];
-}
-
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
+    self.listViewController.breadcrumbs = breadcrumbs;
 }
 
 #pragma mark - Navigation
@@ -156,6 +191,16 @@
     if ([segue.identifier isEqualToString:@"detail"]) {
         DetailViewController *dvc = segue.destinationViewController;
         dvc.breadcrumb = self.selectedBreadcrumb;
+        dvc.mapViewDelegate = self;
+        dvc.delegate = self;
+    }
+    if ([segue.identifier isEqualToString:@"create"]) {
+        UINavigationController *nc = segue.destinationViewController;
+        CreateViewController *cvc = nc.viewControllers[0];
+        cvc.breadcrumbCoordinate = self.newBreadcrumbCoordinate;
+        cvc.mapViewDelegate = self;
+        cvc.delegate = self;
+        cvc.author = @"Replace me";
     }
 }
 
@@ -167,16 +212,47 @@
     [self performSegueWithIdentifier:@"detail" sender:nil];
 }
 
+#pragma mark - CreateViewDelegate
+
+- (void)onCreateBreadcrumb:(Breadcrumb *)breadcrumb {
+    CLLocationCoordinate2D coordinate =
+        CLLocationCoordinate2DMake(breadcrumb.latitude, breadcrumb.longitude);
+    [self addAnnotationwithCoordinate:coordinate andBreadcrumb:breadcrumb];
+    [self.model addBreadcrumb:breadcrumb];
+    self.breadcrumbs = [self.breadcrumbs arrayByAddingObject:breadcrumb];
+    self.listViewController.breadcrumbs = self.breadcrumbs;
+    [self.listViewController reloadData];
+}
+
+#pragma mark - DetailViewDelegate
+
+- (void)onDeleteBreadcrumb:(Breadcrumb *)breadcrumb {
+    [self.model deleteBreadcrumb:breadcrumb];
+    for (BreadcrumbAnnotation *annotation in self.annotations) {
+        if (annotation.breadcrumb == breadcrumb) {
+            [self.mapView removeAnnotation:annotation];
+            [self.annotations removeObject:annotation];
+            [self.model deleteBreadcrumb:breadcrumb];
+            self.breadcrumbs = [self.model getBreadcrumbsNearCoordinate:self.currentLocation];
+            self.listViewController.breadcrumbs = self.breadcrumbs;
+            [self.listViewController reloadData];
+            break;
+        }
+    }
+    [self.listViewController reloadData];
+}
+
 #pragma mark - CLLocationManagerDelegate
 
 - (void)locationManager:(CLLocationManager *)manager
      didUpdateLocations:(NSArray<CLLocation *> *)locations {
+    CLLocation *userLocation = locations[0];
+    CLLocationDegrees latitude = userLocation.coordinate.latitude;
+    CLLocationDegrees longitude = userLocation.coordinate.longitude;
+    CLLocationCoordinate2D coordinate = CLLocationCoordinate2DMake(latitude, longitude);
+    self.currentLocation = coordinate;
     if (self.shouldUpdateLocation) {
         self.mapView.showsUserLocation = YES;
-        CLLocation *userLocation = locations[0];
-        CLLocationDegrees latitude = userLocation.coordinate.latitude;
-        CLLocationDegrees longitude = userLocation.coordinate.longitude;
-        CLLocationCoordinate2D coordinate = CLLocationCoordinate2DMake(latitude, longitude);
         [self goToCoordinate:coordinate];
         self.shouldUpdateLocation = NO;
     }
@@ -190,13 +266,35 @@
     }
     MKAnnotationView *view = [mapView dequeueReusableAnnotationViewWithIdentifier:@"pin"];
     if (view == nil) {
-        view = [[MKPinAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"pin"];
+        view =
+            [[BreadcrumbAnnotationView alloc] initWithAnnotation:annotation reuseIdentifier:@"pin"];
         view.canShowCallout = YES;
         view.rightCalloutAccessoryView = [UIButton buttonWithType:UIButtonTypeDetailDisclosure];
     } else {
         view.annotation = annotation;
     }
     return view;
+}
+
+- (void)mapView:(MKMapView *)mapView didAddAnnotationViews:(NSArray<MKAnnotationView *> *)views {
+    CGFloat delay = 0.00;
+    for (MKAnnotationView *av in views) {
+        if ([av isMemberOfClass:[BreadcrumbAnnotationView class]]) {
+            av.layer.anchorPoint = CGPointMake(0.5, 1.0);
+            av.transform = CGAffineTransformScale(CGAffineTransformIdentity, 0.001, 0.001);
+            delay += 0.1;
+            [UIView animateWithDuration:0.45
+                                  delay:delay
+                 usingSpringWithDamping:0.5
+                  initialSpringVelocity:10
+                                options:UIViewAnimationOptionCurveEaseInOut
+                             animations:^{
+                                 av.transform =
+                                     CGAffineTransformScale(CGAffineTransformIdentity, 1.0, 1.0);
+                             }
+                             completion:nil];
+        }
+    }
 }
 
 - (void)mapView:(MKMapView *)mapView

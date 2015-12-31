@@ -10,6 +10,7 @@
 #import "ListViewController.h"
 
 @interface ListViewController ()
+
 @property (weak, nonatomic) IBOutlet UITableView* tableView;
 
 @end
@@ -22,6 +23,10 @@
 
 - (void)setBreadcrumbs:(NSArray*)breadcrumbs {
     _breadcrumbs = breadcrumbs;
+    [self.tableView reloadData];
+}
+
+- (void)reloadData {
     [self.tableView reloadData];
 }
 
@@ -48,7 +53,7 @@
         cellForRowAtIndexPath:(NSIndexPath*)indexPath {
     UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"cell"];
     Breadcrumb* breadcrumb = self.breadcrumbs[indexPath.row];
-    cell.textLabel.text = breadcrumb.title;
+    cell.textLabel.text = breadcrumb.locationName;
     cell.detailTextLabel.text = breadcrumb.author;
     return cell;
 }
