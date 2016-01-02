@@ -13,7 +13,7 @@
 
 @protocol CreateViewDelegate <NSObject>
 
-- (void)onCreateBreadcrumb:(Breadcrumb *)breadcrumb;
+- (void)onCreateBreadcrumb:(Breadcrumb *)breadcrumb uploadImage:(UIImage *)image;
 
 @end
 

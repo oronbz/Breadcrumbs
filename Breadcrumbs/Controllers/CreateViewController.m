@@ -6,9 +6,11 @@
 //  Copyright © 2015 Oron Ben Zvi. All rights reserved.
 //
 
+#import <Foundation/Foundation.h>
 #import "BreadcrumbAnnotation.h"
 #import "CreateViewController.h"
 #import "MKMapView+Focus.h"
+#import "Model.h"
 
 @interface CreateViewController ()
 @property (weak, nonatomic) IBOutlet UITextField *titleTextField;
@@ -18,7 +20,7 @@
 @property (weak, nonatomic) IBOutlet NSLayoutConstraint *imageViewHeightConstraint;
 @property (weak, nonatomic) IBOutlet MKMapView *mapView;
 
-@property (strong, nonatomic) NSString *imageUrl;
+@property (strong, nonatomic) UIImage *pickedImage;
 
 @end
 
@@ -56,24 +58,44 @@
 }
 
 - (IBAction)doneClicked:(id)sender {
+    if (![self validateFields]) {
+        return;
+    }
+    NSString *possibleImageName = [NSString stringWithFormat:@"%@.jpg", [[NSUUID UUID] UUIDString]];
+    NSString *imageName = self.pickedImage ? possibleImageName : nil;
+    NSString *author = [[Model instance] user];
     Breadcrumb *breadcrumb =
-        [[Breadcrumb alloc] initWithLocationName:self.titleTextField.text
+        [[Breadcrumb alloc] initWithBreadcrumbId:nil
+                                    locationName:self.titleTextField.text
                                         contents:self.contentsTextField.text
-                                          author:self.author
-                                        imageURL:self.imageUrl
+                                          author:author
+                                       imageName:imageName
                                         latitude:self.breadcrumbCoordinate.latitude
                                        longitude:self.breadcrumbCoordinate.longitude
-                                            date:[NSDate date]];
-    [self.delegate onCreateBreadcrumb:breadcrumb];
+                                            date:nil];
+    [self.delegate onCreateBreadcrumb:breadcrumb uploadImage:self.pickedImage];
     [self dismissViewControllerAnimated:YES completion:nil];
 }
 
-- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
-    [self.titleTextField resignFirstResponder];
-    [self.contentsTextField resignFirstResponder];
+- (BOOL)validateFields {
+    NSString *locationName = self.titleTextField.text;
+    NSString *contents = self.contentsTextField.text;
+    if (locationName.length == 0) {
+        [self.titleTextField becomeFirstResponder];
+        return NO;
+    }
+    if (contents.length == 0) {
+        [self.contentsTextField becomeFirstResponder];
+        return NO;
+    }
+    return YES;
 }
 
-- (void)resignKeyboard {
+- (void)touchesBegan:(NSSet<UITouch *> *)touches withEvent:(UIEvent *)event {
+    [self dismissKeyboard];
+}
+
+- (void)dismissKeyboard {
     [self.titleTextField resignFirstResponder];
     [self.contentsTextField resignFirstResponder];
 }
@@ -111,9 +133,8 @@
 
 - (void)imagePickerController:(UIImagePickerController *)picker
 didFinishPickingMediaWithInfo:(NSDictionary<NSString *, id> *)info {
-    UIImage *chosenImage = info[UIImagePickerControllerEditedImage];
-    self.imageView.image = chosenImage;
-    [self.view layoutIfNeeded];
+    self.pickedImage = info[UIImagePickerControllerEditedImage];
+    self.imageView.image = self.pickedImage;
     self.imageViewHeightConstraint.constant = 200;
     [self.view layoutIfNeeded];
     [picker dismissViewControllerAnimated:YES completion:nil];

@@ -8,6 +8,8 @@
 
 #import <MapKit/MapKit.h>
 #import <UIKit/UIKit.h>
+#import "CreateViewController.h"
+#import "DetailViewController.h"
 #import "ListViewController.h"
 
 @interface ViewController

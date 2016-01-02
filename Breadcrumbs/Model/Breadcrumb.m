@@ -10,23 +10,36 @@
 
 @implementation Breadcrumb
 
-- (instancetype)initWithLocationName:(NSString *)locationName
+- (instancetype)initWithBreadcrumbId:(NSString *)breadcrumbId
+                        locationName:(NSString *)locationName
                             contents:(NSString *)contents
                               author:(NSString *)author
-                            imageURL:(NSString *)imageURL
+                           imageName:(NSString *)imageName
                             latitude:(double)latitude
                            longitude:(double)longitude
                                 date:(NSDate *)date {
     if ((self = [super init])) {
-        self.locationName = locationName;
-        self.contents = contents;
-        self.author = author;
-        self.imageURL = imageURL;
-        self.latitude = latitude;
-        self.longitude = longitude;
-        self.date = date;
+        _breadcrumbId = breadcrumbId;
+        _locationName = locationName;
+        _contents = contents;
+        _author = author;
+        _imageName = imageName;
+        _latitude = latitude;
+        _longitude = longitude;
+        _date = date;
     }
     return self;
+}
+
+- (CLLocationDistance)distanceFromCoordinate:(CLLocationCoordinate2D)coordinate {
+    if (coordinate.latitude == 0 || coordinate.longitude == 0) {
+        return 0;
+    }
+    CLLocation *location =
+        [[CLLocation alloc] initWithLatitude:coordinate.latitude longitude:coordinate.longitude];
+    CLLocation *breadcrumbLocation =
+        [[CLLocation alloc] initWithLatitude:self.latitude longitude:self.longitude];
+    return [location distanceFromLocation:breadcrumbLocation];
 }
 
 @end

@@ -26,7 +26,7 @@
 @property (weak, nonatomic) IBOutlet UIButton *listButton;
 
 @property (strong, nonatomic) Model *model;
-@property (strong, nonatomic) NSArray *breadcrumbs;
+@property (strong, nonatomic) NSMutableArray *breadcrumbs;
 @property (strong, nonatomic) CLLocationManager *locationManager;
 
 @property (assign, nonatomic) BOOL shouldUpdateLocation;
@@ -42,13 +42,12 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+    self.model = [Model instance];
     [self setup];
     [self goToCurrentLocation];
 }
 
 - (void)setup {
-    self.model = [[Model alloc] init];
-
     self.locationManager = [[CLLocationManager alloc] init];
     self.locationManager.delegate = self;
     self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
@@ -86,7 +85,7 @@
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
                    dispatch_get_main_queue(), ^{
                        self.newBreadcrumbCoordinate = coordinate;
-                       [self performSegueWithIdentifier:@"create" sender:nil];
+                       [self performSegueWithIdentifier:@"create" sender:self];
                        dispatch_after(
                            dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.5 * NSEC_PER_SEC)),
                            dispatch_get_main_queue(), ^{
@@ -97,7 +96,7 @@
 
 - (IBAction)createButtonClicked:(id)sender {
     self.newBreadcrumbCoordinate = self.currentLocation;
-    [self performSegueWithIdentifier:@"create" sender:nil];
+    [self performSegueWithIdentifier:@"create" sender:self];
 }
 
 - (IBAction)listButtonClicked:(id)sender {
@@ -142,28 +141,51 @@
     [self.locationManager requestWhenInUseAuthorization];
     [self.locationManager startUpdatingLocation];
     self.shouldUpdateLocation = YES;
+
+    CLLocation *currentLocation = self.locationManager.location;
+    if (currentLocation) {
+        self.currentLocation = currentLocation.coordinate;
+    }
 }
 
 - (void)goToCoordinate:(CLLocationCoordinate2D)coordinate {
     [self.mapView focusOnCoordinate:coordinate animated:NO];
     dispatch_async(dispatch_get_main_queue(), ^{
-        [self getNearbyBreadcrumbs:coordinate];
+        [self getBreadcrumbs];
     });
 }
 
-- (void)getNearbyBreadcrumbs:(CLLocationCoordinate2D)coordinate {
-    [self.mapView removeAnnotations:self.annotations];
-    [self.annotations removeAllObjects];
+- (void)getBreadcrumbs {
+    [self.model getBreadcrumbsWithCompletion:^(NSArray *breadcrumbs) {
+        NSLog(@"Breadcrumbs fetched");
+        [self.mapView removeAnnotations:self.annotations];
+        [self.annotations removeAllObjects];
+        self.breadcrumbs = (NSMutableArray *)breadcrumbs;
+        for (Breadcrumb *breadcrumb in self.breadcrumbs) {
+            CLLocationCoordinate2D breadcrumbCoordinate =
+                CLLocationCoordinate2DMake(breadcrumb.latitude, breadcrumb.longitude);
+            [self addAnnotationwithCoordinate:breadcrumbCoordinate andBreadcrumb:breadcrumb];
+        }
+        [self sortAndUpdateMeters];
+    }];
+}
 
-    self.breadcrumbs = [self.model getBreadcrumbsNearCoordinate:coordinate];
-
-    for (Breadcrumb *breadcrumb in self.breadcrumbs) {
-        CLLocationCoordinate2D breadcrumbCoordinate =
-            CLLocationCoordinate2DMake(breadcrumb.latitude, breadcrumb.longitude);
-        [self addAnnotationwithCoordinate:breadcrumbCoordinate andBreadcrumb:breadcrumb];
-    }
-
-    [self updateListViewWithBreadcrumbs:self.breadcrumbs];
+- (void)getBreadcrumbsByCoordinate:(CLLocationCoordinate2D)coordinate {
+    [self.model getBreadcrumbsByCoordinate:coordinate
+                                completion:^(NSArray *breadcrumbs) {
+                                    NSLog(@"Breadcrumbs fetched");
+                                    [self.mapView removeAnnotations:self.annotations];
+                                    [self.annotations removeAllObjects];
+                                    self.breadcrumbs = (NSMutableArray *)breadcrumbs;
+                                    for (Breadcrumb *breadcrumb in self.breadcrumbs) {
+                                        CLLocationCoordinate2D breadcrumbCoordinate =
+                                            CLLocationCoordinate2DMake(breadcrumb.latitude,
+                                                                       breadcrumb.longitude);
+                                        [self addAnnotationwithCoordinate:breadcrumbCoordinate
+                                                            andBreadcrumb:breadcrumb];
+                                    }
+                                    [self sortAndUpdateMeters];
+                                }];
 }
 
 - (void)addAnnotationwithCoordinate:(CLLocationCoordinate2D)coordinate
@@ -171,14 +193,40 @@
     BreadcrumbAnnotation *annotation =
         [[BreadcrumbAnnotation alloc] initWithCoordinate:coordinate andBreadcrumb:breadcrumb];
     annotation.title = breadcrumb.locationName;
-    annotation.subtitle = breadcrumb.author;
+    int meters = [breadcrumb distanceFromCoordinate:self.currentLocation];
+    annotation.subtitle = [NSString stringWithFormat:@"%d meters", meters];
 
     [self.annotations addObject:annotation];
     [self.mapView addAnnotation:annotation];
 }
 
-- (void)updateListViewWithBreadcrumbs:(NSArray *)breadcrumbs {
-    self.listViewController.breadcrumbs = breadcrumbs;
+- (void)sortAndUpdateMeters {
+    NSArray *sortedBreadcrumbs = [self.breadcrumbs sortedArrayUsingComparator:^NSComparisonResult(
+                                                       id a, id b) {
+        NSNumber *firstDistance = @([(Breadcrumb *)a distanceFromCoordinate:self.currentLocation]);
+        NSNumber *secondDistance = @([(Breadcrumb *)b distanceFromCoordinate:self.currentLocation]);
+        return [firstDistance compare:secondDistance];
+    }];
+    self.breadcrumbs = [NSMutableArray arrayWithArray:sortedBreadcrumbs];
+    for (BreadcrumbAnnotation *annotation in self.annotations) {
+        int meters = [annotation.breadcrumb distanceFromCoordinate:self.currentLocation];
+        annotation.subtitle = meters >= 1000
+                                  ? [NSString stringWithFormat:@"%d kilometer(s)", meters / 1000]
+                                  : [NSString stringWithFormat:@"%d meter(s)", meters];
+    }
+    [self updateListView];
+}
+
+- (void)updateListView {
+    self.listViewController.distances = [self distanceFromBreadcrumbs:self.breadcrumbs];
+    self.listViewController.breadcrumbs = self.breadcrumbs;
+}
+
+- (IBAction)logOutClicked:(id)sender {
+    [self.model logOutWithCompletion:^{
+        NSLog(@"Logged out");
+        [self performSegueWithIdentifier:@"logOut" sender:self];
+    }];
 }
 
 #pragma mark - Navigation
@@ -209,37 +257,50 @@
 - (void)didSelectBreadcrumb:(Breadcrumb *)breadcrumb {
     self.selectedBreadcrumb = breadcrumb;
     [self closeListView];
-    [self performSegueWithIdentifier:@"detail" sender:nil];
+    [self performSegueWithIdentifier:@"detail" sender:self];
 }
 
 #pragma mark - CreateViewDelegate
 
-- (void)onCreateBreadcrumb:(Breadcrumb *)breadcrumb {
+- (void)onCreateBreadcrumb:(Breadcrumb *)breadcrumb uploadImage:(UIImage *)image {
     CLLocationCoordinate2D coordinate =
         CLLocationCoordinate2DMake(breadcrumb.latitude, breadcrumb.longitude);
     [self addAnnotationwithCoordinate:coordinate andBreadcrumb:breadcrumb];
-    [self.model addBreadcrumb:breadcrumb];
-    self.breadcrumbs = [self.breadcrumbs arrayByAddingObject:breadcrumb];
-    self.listViewController.breadcrumbs = self.breadcrumbs;
-    [self.listViewController reloadData];
+    [self.breadcrumbs addObject:breadcrumb];
+    [self sortAndUpdateMeters];
+    [self.model addBreadcrumb:breadcrumb
+                   completion:^{
+                       NSLog(@"Added breadcrumb");
+                   }];
+    if (image) {
+        [self.model saveImageForBreadcrumb:breadcrumb
+                                     image:image
+                                completion:^(NSError *error) {
+                                    if (error) {
+                                        NSLog(@"Image failed to upload :%@", error);
+                                    } else {
+                                        NSLog(@"Image uploaded succesfully");
+                                    }
+                                }];
+    }
 }
 
 #pragma mark - DetailViewDelegate
 
 - (void)onDeleteBreadcrumb:(Breadcrumb *)breadcrumb {
-    [self.model deleteBreadcrumb:breadcrumb];
+    [self.model deleteBreadcrumb:breadcrumb
+                      completion:^{
+                          NSLog(@"Deleted breadcrumb");
+                      }];
     for (BreadcrumbAnnotation *annotation in self.annotations) {
         if (annotation.breadcrumb == breadcrumb) {
             [self.mapView removeAnnotation:annotation];
             [self.annotations removeObject:annotation];
-            [self.model deleteBreadcrumb:breadcrumb];
-            self.breadcrumbs = [self.model getBreadcrumbsNearCoordinate:self.currentLocation];
-            self.listViewController.breadcrumbs = self.breadcrumbs;
-            [self.listViewController reloadData];
+            [self.breadcrumbs removeObject:breadcrumb];
             break;
         }
     }
-    [self.listViewController reloadData];
+    [self sortAndUpdateMeters];
 }
 
 #pragma mark - CLLocationManagerDelegate
@@ -251,6 +312,7 @@
     CLLocationDegrees longitude = userLocation.coordinate.longitude;
     CLLocationCoordinate2D coordinate = CLLocationCoordinate2DMake(latitude, longitude);
     self.currentLocation = coordinate;
+    [self sortAndUpdateMeters];
     if (self.shouldUpdateLocation) {
         self.mapView.showsUserLocation = YES;
         [self goToCoordinate:coordinate];
@@ -282,7 +344,7 @@
         if ([av isMemberOfClass:[BreadcrumbAnnotationView class]]) {
             av.layer.anchorPoint = CGPointMake(0.5, 1.0);
             av.transform = CGAffineTransformScale(CGAffineTransformIdentity, 0.001, 0.001);
-            delay += 0.1;
+            delay = arc4random() % 100 / 200.0;
             [UIView animateWithDuration:0.45
                                   delay:delay
                  usingSpringWithDamping:0.5
@@ -302,7 +364,18 @@
     calloutAccessoryControlTapped:(UIControl *)control {
     BreadcrumbAnnotation *annotation = view.annotation;
     self.selectedBreadcrumb = annotation.breadcrumb;
-    [self performSegueWithIdentifier:@"detail" sender:nil];
+    [self performSegueWithIdentifier:@"detail" sender:self];
+}
+
+#pragma mark - Private Methods
+
+- (NSArray *)distanceFromBreadcrumbs:(NSArray *)breadcrumbs {
+    NSMutableArray *distances = [[NSMutableArray alloc] init];
+    for (Breadcrumb *breadcrumb in breadcrumbs) {
+        int meters = [breadcrumb distanceFromCoordinate:self.currentLocation];
+        [distances addObject:@(meters)];
+    }
+    return distances;
 }
 
 @end

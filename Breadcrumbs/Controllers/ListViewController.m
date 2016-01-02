@@ -26,7 +26,8 @@
     [self.tableView reloadData];
 }
 
-- (void)reloadData {
+- (void)setDistances:(NSArray*)distances {
+    _distances = distances;
     [self.tableView reloadData];
 }
 
@@ -54,7 +55,10 @@
     UITableViewCell* cell = [tableView dequeueReusableCellWithIdentifier:@"cell"];
     Breadcrumb* breadcrumb = self.breadcrumbs[indexPath.row];
     cell.textLabel.text = breadcrumb.locationName;
-    cell.detailTextLabel.text = breadcrumb.author;
+    int meters = (int)[self.distances[indexPath.row] integerValue];
+    cell.detailTextLabel.text = meters >= 1000
+                                    ? [NSString stringWithFormat:@"%d kilometer(s)", meters / 1000]
+                                    : [NSString stringWithFormat:@"%d meter(s)", meters];
     return cell;
 }
 

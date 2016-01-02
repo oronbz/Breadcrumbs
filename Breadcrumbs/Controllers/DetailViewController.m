@@ -10,6 +10,7 @@
 #import "BreadcrumbAnnotation.h"
 #import "DetailViewController.h"
 #import "MKMapView+Focus.h"
+#import "Model.h"
 
 @interface DetailViewController ()
 @property (weak, nonatomic) IBOutlet UIImageView *imageView;
@@ -25,6 +26,13 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+    if (![self.breadcrumb.author isEqualToString:[[Model instance] user]]) {
+        // hide the delete button when the author is not the current user
+        [self.deleteButton setEnabled:NO];
+        [self.deleteButton setTintColor:[UIColor clearColor]];
+    }
+
     self.mapView.delegate = self.mapViewDelegate;
     [self loadImage];
     [self addGradientToView:self.imageView];
@@ -49,18 +57,13 @@
 }
 
 - (void)loadImage {
-    if (self.breadcrumb.imageURL != nil) {
+    if (self.breadcrumb.imageName != nil) {
         self.imageView.image = [UIImage imageNamed:@"placeholder-640x480"];
-        [[[NSURLSession sharedSession]
-              dataTaskWithURL:[NSURL URLWithString:self.breadcrumb.imageURL]
-            completionHandler:^(NSData *_Nullable data, NSURLResponse *_Nullable response,
-                                NSError *_Nullable error) {
-                if (data != nil) {
-                    dispatch_async(dispatch_get_main_queue(), ^{
-                        self.imageView.image = [UIImage imageWithData:data];
-                    });
-                }
-            }] resume];
+        [[Model instance] getImageForBreadcrumb:self.breadcrumb
+                                     completion:^(UIImage *image) {
+                                         self.imageView.image = image;
+                                     }];
+
     } else {
         self.imageView.image = [UIImage imageNamed:@"DefaultImage"];
     }
@@ -75,14 +78,36 @@
 }
 
 - (IBAction)deleteClicked:(id)sender {
-    if ([self.delegate respondsToSelector:@selector(onDeleteBreadcrumb:)]) {
-        [self.delegate onDeleteBreadcrumb:self.breadcrumb];
-    }
-    [self.navigationController popViewControllerAnimated:YES];
+    [self presentDeleteDialog];
 }
 
 - (UIStatusBarStyle)preferredStatusBarStyle {
     return UIStatusBarStyleLightContent;
+}
+
+- (void)presentDeleteDialog {
+    UIAlertController *alert =
+        [UIAlertController alertControllerWithTitle:@"Delete"
+                                            message:@"Are you sure you want to delete this "
+                                                    @"breadcrumb? This cannot be undone."
+                                     preferredStyle:UIAlertControllerStyleAlert];
+
+    UIAlertAction *yesAction = [UIAlertAction
+        actionWithTitle:@"YES"
+                  style:UIAlertActionStyleDestructive
+                handler:^(UIAlertAction *action) {
+                    if ([self.delegate respondsToSelector:@selector(onDeleteBreadcrumb:)]) {
+                        [self.delegate onDeleteBreadcrumb:self.breadcrumb];
+                    }
+                    [self.navigationController popViewControllerAnimated:YES];
+                }];
+
+    UIAlertAction *noAction =
+        [UIAlertAction actionWithTitle:@"NO" style:UIAlertActionStyleCancel handler:nil];
+
+    [alert addAction:yesAction];
+    [alert addAction:noAction];
+    [self presentViewController:alert animated:YES completion:nil];
 }
 /*
 #pragma mark - Navigation

@@ -8,13 +8,30 @@
 
 #import <Foundation/Foundation.h>
 #import <MapKit/MapKit.h>
-
-@class Breadcrumb;
+#import "Breadcrumb.h"
 
 @interface Model : NSObject
 
-- (NSArray *)getBreadcrumbsNearCoordinate:(CLLocationCoordinate2D)coordinate;
-- (void)addBreadcrumb:(Breadcrumb *)breadcrumb;
-- (void)deleteBreadcrumb:(Breadcrumb *)breadcrumb;
+@property (strong, nonatomic) NSString *user;
+
++ (Model *)instance;
+
+- (void)getBreadcrumbsWithCompletion:(void (^)(NSArray *))completion;
+- (void)getBreadcrumbsByCoordinate:(CLLocationCoordinate2D)coordinate
+                        completion:(void (^)(NSArray *))completion;
+- (void)getImageForBreadcrumb:(Breadcrumb *)breadcrumb completion:(void (^)(UIImage *))completion;
+- (void)saveImageForBreadcrumb:(Breadcrumb *)breadcrumb
+                         image:(UIImage *)image
+                    completion:(void (^)(NSError *))completion;
+- (void)addBreadcrumb:(Breadcrumb *)breadcrumb completion:(void (^)())completion;
+- (void)deleteBreadcrumb:(Breadcrumb *)breadcrumb completion:(void (^)())completion;
+
+- (void)logInWithUsername:(NSString *)username
+                 password:(NSString *)password
+               completion:(void (^)(BOOL))completion;
+- (void)signUpWithUsername:(NSString *)username
+                  password:(NSString *)password
+                completion:(void (^)(BOOL))completion;
+- (void)logOutWithCompletion:(void (^)())completion;
 
 @end

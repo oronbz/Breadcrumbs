@@ -16,6 +16,8 @@
 
 @interface DetailViewController : UIViewController
 
+@property (weak, nonatomic) IBOutlet UIBarButtonItem *deleteButton;
+
 @property (strong, nonatomic) Breadcrumb *breadcrumb;
 @property (weak, nonatomic) id<DetailViewDelegate> delegate;
 @property (weak, nonatomic) id<MKMapViewDelegate> mapViewDelegate;
